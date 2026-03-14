@@ -1,10 +1,14 @@
-TELEGRAM_TOKEN = "8688404030:AAHeM7LBRolyLFQvVWBk7DWE44LKT8KA4AA"
-TELEGRAM_CHAT_ID = "Y8688404030"
+import os
+from dotenv import load_dotenv
 
-MIN_VOLUME = 300000
-MAX_VOLUME = 1000000
+load_dotenv()
 
-CHECK_INTERVAL = 300  # 5 minutes
+TELEGRAM_TOKEN = os.getenv("T8688404030:AAHeM7LBRolyLFQvVWBk7DWE44LKT8KA4AA")
+TELEGRAM_CHAT_ID = os.getenv("8688404030")
+
+MIN_SPREAD = float(os.getenv("MIN_SPREAD", 1))
+MIN_VOLUME = float(os.getenv("MIN_VOLUME", 10000))
+MAX_VOLUME = float(os.getenv("MAX_VOLUME", 100000000))
 
 EXCHANGES = [
     "okx",
@@ -12,3 +16,5 @@ EXCHANGES = [
     "mexc",
     "htx"
 ]
+
+SCAN_INTERVAL = 300
