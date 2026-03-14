@@ -1,0 +1,14 @@
+TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
+TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
+
+MIN_VOLUME = 300000
+MAX_VOLUME = 1000000
+
+CHECK_INTERVAL = 300  # 5 minutes
+
+EXCHANGES = [
+    "okx",
+    "bybit",
+    "mexc",
+    "htx"
+]
