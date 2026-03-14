@@ -1,54 +1,53 @@
-from config import MIN_VOLUME, MAX_VOLUME
+from config import MIN_SPREAD
+
 
 class ArbitrageFinder:
 
-    def normalize_symbol(self, symbol):
-        return symbol.replace("-", "").replace("_", "")
-
-    def find_opportunities(self, markets):
-
-        coins = {}
-
-        for exchange, data in markets.items():
-
-            for symbol, info in data.items():
-
-                volume = info["volume"]
-
-                if volume < MIN_VOLUME or volume > MAX_VOLUME:
-                    continue
-
-                norm = self.normalize_symbol(symbol)
-
-                if norm not in coins:
-                    coins[norm] = {}
-
-                coins[norm][exchange] = info["price"]
+    def find(self, prices):
 
         opportunities = []
 
-        for coin, prices in coins.items():
+        symbols = set()
 
-            if len(prices) < 2:
+        for exchange in prices:
+            symbols.update(prices[exchange].keys())
+
+        for symbol in symbols:
+
+            exchange_prices = {}
+
+            for exchange in prices:
+
+                if symbol in prices[exchange]:
+
+                    exchange_prices[exchange] = prices[exchange][symbol]
+
+            if len(exchange_prices) < 2:
                 continue
 
-            min_ex = min(prices, key=prices.get)
-            max_ex = max(prices, key=prices.get)
+            min_exchange = min(exchange_prices, key=exchange_prices.get)
+            max_exchange = max(exchange_prices, key=exchange_prices.get)
 
-            min_price = prices[min_ex]
-            max_price = prices[max_ex]
+            min_price = exchange_prices[min_exchange]
+            max_price = exchange_prices[max_exchange]
+
+            if min_price == 0:
+                continue
 
             spread = (max_price - min_price) / min_price * 100
 
-            opportunities.append({
-                "coin": coin,
-                "buy_exchange": min_ex,
-                "sell_exchange": max_ex,
-                "buy_price": min_price,
-                "sell_price": max_price,
-                "spread": spread
-            })
+            if spread < MIN_SPREAD:
+                continue
 
-        opportunities.sort(key=lambda x: x["spread"], reverse=True)
+            opportunities.append(
+                {
+                    "symbol": symbol,
+                    "buy_exchange": min_exchange,
+                    "sell_exchange": max_exchange,
+                    "buy_price": min_price,
+                    "sell_price": max_price,
+                    "spread": spread,
+                }
+            )
 
-        return opportunities[:5]
+        return sorted(opportunities, key=lambda x: x["spread"], reverse=True)
