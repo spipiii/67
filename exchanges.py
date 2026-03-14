@@ -1,104 +1,142 @@
 import aiohttp
-import asyncio
 
-class ExchangeAPI:
+from config import MIN_VOLUME, MAX_VOLUME
+
+
+class ExchangeScanner:
+
+    def normalize_symbol(self, symbol):
+        return symbol.replace("-", "").replace("_", "").upper()
 
     async def fetch_okx(self, session):
+
         url = "https://www.okx.com/api/v5/market/tickers?instType=SPOT"
 
         async with session.get(url) as r:
+
             data = await r.json()
 
         result = {}
 
         for item in data["data"]:
-            symbol = item["instId"]
+
+            symbol = self.normalize_symbol(item["instId"])
+
+            if not symbol.endswith("USDT"):
+                continue
+
             price = float(item["last"])
+
             volume = float(item["volCcy24h"])
 
-            result[symbol] = {
-                "price": price,
-                "volume": volume
-            }
+            if volume < MIN_VOLUME or volume > MAX_VOLUME:
+                continue
+
+            result[symbol] = price
 
         return result
 
     async def fetch_bybit(self, session):
+
         url = "https://api.bybit.com/v5/market/tickers?category=spot"
 
         async with session.get(url) as r:
+
             data = await r.json()
 
         result = {}
 
         for item in data["result"]["list"]:
-            symbol = item["symbol"]
+
+            symbol = self.normalize_symbol(item["symbol"])
+
+            if not symbol.endswith("USDT"):
+                continue
+
             price = float(item["lastPrice"])
+
             volume = float(item["turnover24h"])
 
-            result[symbol] = {
-                "price": price,
-                "volume": volume
-            }
+            if volume < MIN_VOLUME or volume > MAX_VOLUME:
+                continue
+
+            result[symbol] = price
 
         return result
 
     async def fetch_mexc(self, session):
+
         url = "https://api.mexc.com/api/v3/ticker/24hr"
 
         async with session.get(url) as r:
+
             data = await r.json()
 
         result = {}
 
         for item in data:
-            symbol = item["symbol"]
+
+            symbol = self.normalize_symbol(item["symbol"])
+
+            if not symbol.endswith("USDT"):
+                continue
+
             price = float(item["lastPrice"])
+
             volume = float(item["quoteVolume"])
 
-            result[symbol] = {
-                "price": price,
-                "volume": volume
-            }
+            if volume < MIN_VOLUME or volume > MAX_VOLUME:
+                continue
+
+            result[symbol] = price
 
         return result
 
     async def fetch_htx(self, session):
+
         url = "https://api.huobi.pro/market/tickers"
 
         async with session.get(url) as r:
+
             data = await r.json()
 
         result = {}
 
         for item in data["data"]:
-            symbol = item["symbol"].upper()
-            price = float(item["close"])
-            volume = float(item["vol"])
 
-            result[symbol] = {
-                "price": price,
-                "volume": volume
-            }
+            symbol = self.normalize_symbol(item["symbol"])
+
+            if not symbol.endswith("USDT"):
+                continue
+
+            price = float(item["close"])
+
+            volume = float(item["vol"]) * price
+
+            if volume < MIN_VOLUME or volume > MAX_VOLUME:
+                continue
+
+            result[symbol] = price
 
         return result
 
-    async def fetch_all(self):
+    async def get_all_prices(self):
 
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=10)
 
-            tasks = [
-                self.fetch_okx(session),
-                self.fetch_bybit(session),
-                self.fetch_mexc(session),
-                self.fetch_htx(session)
-            ]
+        async with aiohttp.ClientSession(timeout=timeout) as session:
 
-            okx, bybit, mexc, htx = await asyncio.gather(*tasks)
+            okx = await self.fetch_okx(session)
 
-            return {
-                "okx": okx,
-                "bybit": bybit,
-                "mexc": mexc,
-                "htx": htx
-            }
+            bybit = await self.fetch_bybit(session)
+
+            mexc = await self.fetch_mexc(session)
+
+            htx = await self.fetch_htx(session)
+
+        return {
+            "okx": okx,
+            "bybit": bybit,
+            "mexc": mexc,
+            "htx": htx
+        }
