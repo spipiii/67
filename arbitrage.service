@@ -1,0 +1,13 @@
+[Unit]
+Description=Crypto Arbitrage Bot
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/crypto_arbitrage_bot
+ExecStart=/root/crypto_arbitrage_bot/run.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
